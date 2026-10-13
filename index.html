@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Booth">
+<meta name="theme-color" content="#2a0a12">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<title>Birthday Booth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a dark booth interior. Camera window centred, one big shutter button below; result screen pairs the printed strip with its controls. Single deliberate dark theme. */
+:root{
+  --curtain:#2a0a12;
+  --curtain-2:#3d0f1b;
+  --velvet:#5c1426;
+  --frosting:#ffc9d6;
+  --candle:#f6c453;
+  --paper:#fff6ea;
+  --ink:#fff2e6;
+  --muted:#d9a9b4;
+  --display:"Shrikhand", "Georgia", serif;
+  --body:"DM Sans", system-ui, -apple-system, sans-serif;
+  --mono:"DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--curtain);
+  background-image:repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 18px, rgba(255,255,255,.02) 18px 40px);
+  color:var(--ink);font-family:var(--body);
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;
+  overflow:hidden;
+}
+[hidden]{display:none!important}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);gap:16px}
+
+/* marquee */
+.marquee{display:flex;align-items:center;gap:12px;flex:none}
+.marquee h1{font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,34px);margin:0;color:var(--frosting);
+  text-shadow:0 2px 0 var(--velvet),0 0 24px rgba(255,201,214,.25);letter-spacing:.01em}
+.bulbs{display:flex;gap:6px}
+.bulbs i{width:7px;height:7px;border-radius:50%;background:var(--candle);box-shadow:0 0 8px var(--candle);animation:blink 1.6s infinite}
+.bulbs i:nth-child(2){animation-delay:.4s}.bulbs i:nth-child(3){animation-delay:.8s}
+@keyframes blink{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.bulbs i{animation:none}}
+
+/* setup */
+#setup{justify-content:center}
+.card{width:min(440px,100%);background:var(--curtain-2);border:1px solid rgba(255,201,214,.18);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.card p{margin:0;color:var(--muted);line-height:1.5}
+label{display:flex;flex-direction:column;gap:6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input[type=text]{font:16px var(--body);color:var(--ink);background:rgba(0,0,0,.3);border:1px solid rgba(255,201,214,.25);border-radius:12px;padding:12px 14px;-webkit-user-select:text;user-select:text}
+input[type=text]:focus{outline:2px solid var(--candle);outline-offset:1px}
+
+button{font:600 16px var(--body);border:0;cursor:pointer;color:inherit;border-radius:999px;padding:12px 20px;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--candle);outline-offset:3px}
+.primary{background:var(--frosting);color:var(--curtain);box-shadow:0 4px 0 var(--velvet)}
+.primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--velvet)}
+.ghost{background:rgba(255,255,255,.08);border:1px solid rgba(255,201,214,.2)}
+.ghost[aria-pressed=true]{background:var(--ink);color:var(--curtain)}
+
+/* booth */
+.window{position:relative;flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+.frame{position:relative;aspect-ratio:4/3;height:100%;max-width:100%;max-height:100%;border-radius:18px;overflow:hidden;background:#000;
+  box-shadow:0 0 0 6px var(--velvet),0 0 0 8px rgba(246,196,83,.5),0 24px 60px rgba(0,0,0,.6)}
+@supports not (aspect-ratio:4/3){.frame{width:100%;height:auto;padding-top:75%}}
+.frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.frame video.mirror{transform:scaleX(-1)}
+.frame video.bw{filter:grayscale(1) contrast(1.08)}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:min(40vw,40vh);color:var(--ink);text-shadow:0 6px 30px rgba(0,0,0,.6);pointer-events:none}
+.count.pop{animation:pop .9s ease-out}
+@keyframes pop{from{transform:scale(1.4);opacity:0}25%{opacity:1}to{transform:scale(.9);opacity:.85}}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+.flash.go{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.shotdots{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:999px}
+.shotdots i{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink)}
+.shotdots i.on{background:var(--candle);border-color:var(--candle)}
+.camerr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;color:var(--ink);background:var(--curtain-2)}
+.camerr p{margin:0;max-width:36ch;line-height:1.5;color:var(--muted)}
+
+.controls{flex:none;display:flex;align-items:center;justify-content:center;gap:16px;width:100%;flex-wrap:wrap}
+.seg{display:flex;gap:4px;background:rgba(0,0,0,.35);padding:4px;border-radius:999px}
+.seg button{padding:10px 16px;font-size:14px;background:transparent}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--curtain)}
+.shutter{width:84px;height:84px;border-radius:50%;padding:0;background:var(--frosting);box-shadow:0 0 0 5px var(--curtain),0 0 0 9px var(--frosting);
+  font:400 15px var(--display);color:var(--curtain)}
+.shutter:active{transform:scale(.95)}
+.shutter:disabled{opacity:.5}
+.icon-btn{width:48px;height:48px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,201,214,.2)}
+.icon-btn svg{width:22px;height:22px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* result */
+#result{flex-direction:row;justify-content:center;align-items:stretch;gap:24px}
+.preview{flex:1 1 auto;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.preview canvas{max-height:100%;max-width:100%;box-shadow:0 18px 50px rgba(0,0,0,.55);border-radius:4px;transform:rotate(-1.5deg);animation:develop 1.4s ease-out}
+@keyframes develop{from{filter:brightness(1.8) saturate(0);transform:rotate(-1.5deg) translateY(-30px)}to{filter:none}}
+@media (prefers-reduced-motion:reduce){.preview canvas{animation:none}}
+.panel{flex:0 0 300px;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.panel h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0;color:var(--frosting)}
+.opt{display:flex;flex-direction:column;gap:8px}
+.opt .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.swatches{display:flex;gap:10px}
+.swatches button{width:40px;height:40px;padding:0;border-radius:50%;border:3px solid transparent}
+.swatches button[aria-pressed=true]{border-color:var(--candle)}
+.note{font:12px var(--mono);color:var(--muted);line-height:1.5;margin:0}
+.actions{display:flex;flex-direction:column;gap:10px}
+.actions .primary{padding:16px 20px;font-size:18px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);background:var(--ink);color:var(--curtain);font-weight:600;padding:10px 18px;border-radius:999px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+
+@media (max-width:760px), (max-aspect-ratio:1/1){
+  #result{flex-direction:column;align-items:center;gap:14px}
+  .panel{flex:none;width:min(440px,100%);gap:12px}
+  .panel h2{display:none}
+  .opt{flex-direction:row;align-items:center;justify-content:space-between}
+  .actions{flex-direction:row}
+  .actions button{flex:1}
+}
+
+/* fallback save sheet */
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(10,2,5,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.sheet img{max-height:72%;max-width:100%;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+.sheet p{margin:0;text-align:center;color:var(--ink);max-width:34ch;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<section id="setup" class="screen" hidden>
+  <div class="marquee"><div class="bulbs"><i></i><i></i><i></i></div><h1>Birthday Booth</h1><div class="bulbs"><i></i><i></i><i></i></div></div>
+  <form class="card" id="setupForm">
+    <p>Set the words printed at the bottom of every strip. You can change them later from the gear button.</p>
+    <label for="line1">Top line<input type="text" id="line1" maxlength="28" placeholder="Happy Birthday" autocomplete="off"></label>
+    <label for="line2">Second line<input type="text" id="line2" maxlength="34" placeholder="Maya turns 25" autocomplete="off"></label>
+    <button class="primary" type="submit">Open the booth</button>
+  </form>
+</section>
+
+<!-- BOOTH -->
+<section id="booth" class="screen" hidden>
+  <div class="marquee"><div class="bulbs"><i></i><i></i><i></i></div><h1 id="boothTitle">Birthday Booth</h1><div class="bulbs"><i></i><i></i><i></i></div></div>
+  <div class="window">
+    <div class="frame">
+      <video id="video" playsinline muted autoplay class="mirror"></video>
+      <div class="shotdots" id="dots" hidden><i></i><i></i><i></i></div>
+      <div class="count" id="count"></div>
+      <div class="camerr" id="camerr" hidden>
+        <strong>Camera isn't on</strong>
+        <p id="camerrMsg">Allow camera access when Safari asks.</p>
+        <button class="primary" id="retryCam" type="button">Turn on camera</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="Edit strip text">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+    <div class="seg" role="group" aria-label="Filter">
+      <button type="button" data-filter="color" aria-pressed="true">Color</button>
+      <button type="button" data-filter="bw" aria-pressed="false">B&amp;W</button>
+    </div>
+    <button class="shutter" id="shutter" type="button" aria-label="Start: takes 3 photos">Start</button>
+    <button class="icon-btn" id="flipBtn" type="button" aria-label="Switch camera">
+      <svg viewBox="0 0 24 24"><path d="M3 7h3l2-3h8l2 3h3v12H3z"/><path d="M9 13a3 3 0 0 1 5.2-2"/><path d="M15 13a3 3 0 0 1-5.2 2"/><path d="M14.5 9.5v1.7h-1.7M9.5 16.5v-1.7h1.7"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- RESULT -->
+<section id="result" class="screen" hidden>
+  <div class="preview" id="preview"></div>
+  <div class="panel">
+    <h2>Fresh from the booth</h2>
+    <div class="opt">
+      <span class="lbl">Filter</span>
+      <div class="seg" role="group" aria-label="Filter">
+        <button type="button" data-filter="color" aria-pressed="true">Color</button>
+        <button type="button" data-filter="bw" aria-pressed="false">B&amp;W</button>
+      </div>
+    </div>
+    <div class="opt">
+      <span class="lbl">Paper</span>
+      <div class="swatches" id="swatches" role="group" aria-label="Strip color"></div>
+    </div>
+    <div class="opt">
+      <span class="lbl">Print size</span>
+      <div class="seg" role="group" aria-label="Print size">
+        <button type="button" data-layout="strip" aria-pressed="false">2×6 strip</button>
+        <button type="button" data-layout="sheet" aria-pressed="true">4×6 (2 strips)</button>
+      </div>
+    </div>
+    <p class="note" id="sizeNote"></p>
+    <div class="actions">
+      <button class="primary" id="saveBtn" type="button">Save to Photos</button>
+      <button class="ghost" id="againBtn" type="button">Take another</button>
+    </div>
+  </div>
+</section>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast" hidden></div>
+<div class="sheet" id="sheet" hidden>
+  <img id="sheetImg" alt="Your photo strip">
+  <p>Press and hold the strip, then tap <b>Save to Photos</b>.</p>
+  <button class="primary" id="sheetClose" type="button">Done</button>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem("booth." + k); return v === null ? d : v; } catch { return d; } },
+    set(k, v){ try { localStorage.setItem("booth." + k, v); } catch {} }
+  };
+
+  const PAPERS = {
+    cream: { bg:"#fff6ea", ink:"#8c1631", sub:"#5a4a44", sprinkles:["#f08aa5","#f6c453","#7fc8c0","#8c1631"] },
+    pink:  { bg:"#ffd3dd", ink:"#7a1029", sub:"#7a3a4a", sprinkles:["#ffffff","#f6c453","#7a1029","#e0607e"] },
+    black: { bg:"#1a1113", ink:"#ffc9d6", sub:"#d9b9a0", sprinkles:["#ffc9d6","#f6c453","#fff6ea","#e0607e"] },
+  };
+
+  const state = {
+    line1: store.get("line1", "Happy Birthday"),
+    line2: store.get("line2", ""),
+    filter: store.get("filter", "color"),
+    paper: store.get("paper", "cream"),
+    layout: store.get("layout", "sheet"),
+    facing: "user",
+    frames: [],
+    stripCount: Number(store.get("count", "0")) || 0,
+    file: null,
+    busy: false,
+  };
+
+  // ---------- screens
+  function show(id){ for (const s of ["setup","booth","result"]) $(s).hidden = s !== id; }
+
+  // ---------- setup
+  function openSetup(){
+    $("line1").value = state.line1 === "Happy Birthday" && !store.get("setupDone","") ? "" : state.line1;
+    $("line2").value = state.line2;
+    show("setup");
+  }
+  $("setupForm").addEventListener("submit", e => {
+    e.preventDefault();
+    state.line1 = $("line1").value.trim() || "Happy Birthday";
+    state.line2 = $("line2").value.trim();
+    store.set("line1", state.line1); store.set("line2", state.line2); store.set("setupDone", "1");
+    openBooth();
+  });
+  $("settingsBtn").addEventListener("click", () => { stopCam(); openSetup(); });
+
+  // ---------- filter / options (shared across screens)
+  function syncPressed(){
+    document.querySelectorAll("[data-filter]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.filter === state.filter)));
+    document.querySelectorAll("[data-layout]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.layout === state.layout)));
+    document.querySelectorAll("#swatches button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.paper === state.paper)));
+    $("video").classList.toggle("bw", state.filter === "bw");
+    $("sizeNote").textContent = state.layout === "sheet"
+      ? "1200 × 1800 px · 4×6 in @ 300 dpi · cut down the middle for two strips"
+      : "600 × 1800 px · 2×6 in @ 300 dpi";
+  }
+  document.querySelectorAll("[data-filter]").forEach(b => b.addEventListener("click", () => {
+    state.filter = b.dataset.filter; store.set("filter", state.filter); syncPressed();
+    if (!$("result").hidden) renderResult();
+  }));
+  document.querySelectorAll("[data-layout]").forEach(b => b.addEventListener("click", () => {
+    state.layout = b.dataset.layout; store.set("layout", state.layout); syncPressed(); renderResult();
+  }));
+  for (const [key, p] of Object.entries(PAPERS)) {
+    const b = document.createElement("button");
+    b.type = "button"; b.dataset.paper = key; b.style.background = p.bg;
+    b.setAttribute("aria-label", key[0].toUpperCase() + key.slice(1) + " paper");
+    b.addEventListener("click", () => { state.paper = key; store.set("paper", key); syncPressed(); renderResult(); });
+    $("swatches").appendChild(b);
+  }
+
+  // ---------- camera
+  const video = $("video");
+  let stream = null, wakeLock = null;
+
+  function stopCam(){ if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
+
+  async function startCam(){
+    $("camerr").hidden = true;
+    stopCam();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return camError(location.protocol !== "https:" && location.hostname !== "localhost"
+        ? "The camera only works when this page is opened from an https:// address."
+        : "This browser can't use the camera. Try Safari or Chrome.");
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: state.facing, width: { ideal: 1920 }, height: { ideal: 1440 } }
+      });
+      video.srcObject = stream;
+      video.classList.toggle("mirror", state.facing === "user");
+      await video.play().catch(() => {});
+      $("shutter").disabled = false;
+    } catch (err) {
+      const denied = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+      camError(denied
+        ? "Camera access was blocked. In Safari, tap the aA button in the address bar, open Website Settings, set Camera to Allow, then try again."
+        : "Couldn't start the camera (" + (err && err.name || "unknown error") + "). Close other apps using it and try again.");
+    }
+  }
+  function camError(msg){ $("camerrMsg").textContent = msg; $("camerr").hidden = false; $("shutter").disabled = true; }
+  $("retryCam").addEventListener("click", startCam);
+  $("flipBtn").addEventListener("click", () => { if (state.busy) return; state.facing = state.facing === "user" ? "environment" : "user"; startCam(); });
+
+  async function keepAwake(){
+    try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") { keepAwake(); if (!$("booth").hidden && !stream) startCam(); }
+  });
+
+  function openBooth(){
+    $("boothTitle").textContent = state.line2 || state.line1 || "Birthday Booth";
+    $("dots").hidden = true; $("count").textContent = "";
+    $("shutter").disabled = false;
+    show("booth"); syncPressed(); startCam(); keepAwake();
+  }
+
+  // ---------- sounds (start after a tap, so iOS allows them)
+  let actx = null;
+  function beep(freq, dur, vol = .15){
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = freq; o.type = "sine";
+      g.gain.setValueAtTime(vol, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + dur);
+      o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+    } catch {}
+  }
+  function shutterSound(){
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const len = actx.sampleRate * .12, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      const src = actx.createBufferSource(), g = actx.createGain(); g.gain.value = .35;
+      src.buffer = buf; src.connect(g).connect(actx.destination); src.start();
+    } catch {}
+  }
+
+  // ---------- shooting
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function countdown(n){
+    const el = $("count");
+    for (let i = n; i > 0; i--) {
+      el.textContent = i; el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+      beep(i === 1 ? 880 : 660, .12);
+      await sleep(1000);
+    }
+    el.textContent = "";
+  }
+
+  function capture(){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const ratio = 4 / 3;
+    let sw = vw, sh = vw / ratio;
+    if (sh > vh) { sh = vh; sw = vh * ratio; }
+    const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+    const W = Math.min(1600, Math.round(sw)), H = Math.round(W / ratio);
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    if (state.facing === "user") { ctx.translate(W, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, W, H);
+    return c;
+  }
+
+  async function runSession(){
+    if (state.busy || !stream || !video.videoWidth) return;
+    state.busy = true; state.frames = [];
+    $("shutter").disabled = true; $("flipBtn").disabled = true; $("settingsBtn").disabled = true;
+    const dots = [...$("dots").children]; dots.forEach(d => d.classList.remove("on")); $("dots").hidden = false;
+    keepAwake();
+    try {
+      for (let i = 0; i < 3; i++) {
+        await countdown(3);
+        const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+        shutterSound();
+        state.frames.push(capture());
+        dots[i].classList.add("on");
+        await sleep(i < 2 ? 900 : 500);
+      }
+      state.stripCount += 1; store.set("count", String(state.stripCount));
+      stopCam();
+      show("result"); syncPressed();
+      await renderResult();
+    } finally {
+      state.busy = false;
+      $("shutter").disabled = false; $("flipBtn").disabled = false; $("settingsBtn").disabled = false;
+    }
+  }
+  $("shutter").addEventListener("click", runSession);
+  document.addEventListener("keydown", e => {
+    if ((e.code === "Space" || e.code === "Enter") && !$("booth").hidden && document.activeElement.tagName !== "INPUT") { e.preventDefault(); runSession(); }
+  });
+
+  // ---------- strip rendering (2x6 in @ 300 dpi = 600 x 1800)
+  const SW = 600, SH = 1800, PAD = 32, GAP = 18;
+  const PW = SW - PAD * 2, PH = Math.round(PW * 3 / 4);
+
+  function toBW(src){
+    const c = document.createElement("canvas"); c.width = src.width; c.height = src.height;
+    const ctx = c.getContext("2d"); ctx.drawImage(src, 0, 0);
+    const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      let y = .299 * d[i] + .587 * d[i+1] + .114 * d[i+2];
+      y = (y - 128) * 1.12 + 128;          // a little punch, like booth film
+      y = y < 0 ? 0 : y > 255 ? 255 : y;
+      d[i] = d[i+1] = d[i+2] = y;
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  function rng(seed){ return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+
+  function fitText(ctx, text, font, size, maxW){
+    let s = size; ctx.font = `${s}px ${font}`;
+    while (ctx.measureText(text).width > maxW && s > 18) { s -= 2; ctx.font = `${s}px ${font}`; }
+    return s;
+  }
+
+  function drawStrip(ctx, ox, frames, paper){
+    const p = PAPERS[paper];
+    ctx.fillStyle = p.bg; ctx.fillRect(ox, 0, SW, SH);
+
+    frames.forEach((f, i) => {
+      const y = PAD + i * (PH + GAP);
+      const src = state.filter === "bw" ? toBW(f) : f;
+      ctx.drawImage(src, ox + PAD, y, PW, PH);
+    });
+
+    const footTop = PAD + 3 * PH + 2 * GAP;
+    const footH = SH - footTop - PAD;
+    const cx = ox + SW / 2;
+
+    // sprinkles, kept to the footer margins
+    const r = rng(4242 + state.stripCount);
+    for (let i = 0; i < 46; i++) {
+      const x = ox + PAD + r() * PW, y = footTop + 14 + r() * (footH - 14);
+      const nearText = Math.abs(y - (footTop + footH * .46)) < footH * .3 && Math.abs(x - cx) < PW * .42;
+      if (nearText) continue;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(r() * Math.PI);
+      ctx.fillStyle = p.sprinkles[i % p.sprinkles.length];
+      const w = 18, h = 6; ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, 3); else ctx.rect(-w/2, -h/2, w, h);
+      ctx.fill(); ctx.restore();
+    }
+
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    const hasL2 = !!state.line2;
+    const l1y = footTop + footH * (hasL2 ? .40 : .50);
+    ctx.fillStyle = p.ink;
+    fitText(ctx, state.line1, "Shrikhand, Georgia, serif", 76, PW - 40);
+    ctx.fillText(state.line1, cx, l1y);
+
+    if (hasL2) {
+      ctx.fillStyle = p.sub;
+      const s = fitText(ctx, state.line2, '"DM Sans", system-ui, sans-serif', 40, PW - 60);
+      ctx.font = `600 ${s}px "DM Sans", system-ui, sans-serif`;
+      ctx.fillText(state.line2, cx, l1y + 66);
+    }
+
+    // booth-style date stamp
+    const d = new Date();
+    const stamp = d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase().replace(",", "")
+      + "  ·  No. " + String(state.stripCount).padStart(3, "0");
+    ctx.font = '500 22px "DM Mono", ui-monospace, monospace';
+    ctx.fillStyle = p.sub; ctx.globalAlpha = .85;
+    ctx.fillText(stamp, cx, footTop + footH - 26);
+    ctx.globalAlpha = 1;
+  }
+
+  async function renderResult(){
+    if (!state.frames.length) return;
+    try { await Promise.all([document.fonts.load('76px Shrikhand'), document.fonts.load('600 40px "DM Sans"'), document.fonts.load('500 22px "DM Mono"')]); } catch {}
+    const sheet = state.layout === "sheet";
+    const c = document.createElement("canvas");
+    c.width = sheet ? SW * 2 : SW; c.height = SH;
+    const ctx = c.getContext("2d");
+    drawStrip(ctx, 0, state.frames, state.paper);
+    if (sheet) {
+      drawStrip(ctx, SW, state.frames, state.paper);
+      // faint cut guide at the top and bottom edges
+      ctx.strokeStyle = "rgba(128,128,128,.5)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(SW, 0); ctx.lineTo(SW, 14); ctx.moveTo(SW, SH - 14); ctx.lineTo(SW, SH); ctx.stroke();
+    }
+    const pv = $("preview"); pv.innerHTML = ""; pv.appendChild(c);
+
+    state.file = null; $("saveBtn").disabled = true;
+    const blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.95));
+    const day = new Date().toISOString().slice(0, 10);
+    state.file = new File([blob], `birthday-booth-${day}-${String(state.stripCount).padStart(3, "0")}${sheet ? "-4x6" : "-2x6"}.jpg`, { type: "image/jpeg" });
+    $("saveBtn").disabled = false;
+  }
+
+  // ---------- saving
+  function toast(msg){ const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2400); }
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  $("saveBtn").addEventListener("click", () => {
+    const file = state.file; if (!file) return;
+    // Share sheet first: on iPhone/iPad it has "Save Image", which goes to Photos; on Mac it has "Add to Photos".
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).then(() => toast("Saved")).catch(err => { if (err && err.name !== "AbortError") fallbackSave(file); });
+      return;
+    }
+    fallbackSave(file);
+  });
+
+  function fallbackSave(file){
+    const url = URL.createObjectURL(file);
+    if (isIOS) { $("sheetImg").src = url; $("sheet").hidden = false; return; }
+    const a = document.createElement("a"); a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast("Downloaded " + file.name);
+  }
+  $("sheetClose").addEventListener("click", () => { $("sheet").hidden = true; });
+
+  $("againBtn").addEventListener("click", openBooth);
+
+  // ---------- boot
+  syncPressed();
+  if (store.get("setupDone", "")) openBooth(); else openSetup();
+})();
+</script>
+</body>
+</html>
