@@ -73,7 +73,7 @@ button:disabled{opacity:.45;cursor:default}
 
 /* booth */
 .window{position:relative;flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;z-index:2}
-.frame{position:relative;aspect-ratio:4/3;height:100%;max-width:100%;max-height:100%;background:#eadfe4;border-radius:6px;
+.frame{position:relative;aspect-ratio:544/476;height:100%;max-width:100%;max-height:100%;background:#eadfe4;border-radius:6px;
   border:10px solid var(--white);box-shadow:0 0 0 1px var(--gold),0 0 0 5px var(--white),0 0 0 6px rgba(214,178,122,.6),0 22px 50px rgba(125,90,110,.18)}
 .frame .inner{position:absolute;inset:0;overflow:hidden;border-radius:2px}
 .frame video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -525,7 +525,7 @@ button:disabled{opacity:.45;cursor:default}
   }
 
   function capture(){
-    const vw = video.videoWidth, vh = video.videoHeight, ratio = 4 / 3;
+    const vw = video.videoWidth, vh = video.videoHeight, ratio = PW / PH;
     let sw = vw, sh = vw / ratio;
     if (sh > vh) { sh = vh; sw = vh * ratio; }
     const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
@@ -566,8 +566,8 @@ button:disabled{opacity:.45;cursor:default}
   });
 
   // ---------- strip: 2×6 in at 300 dpi = 600 × 1800 px
-  const SW = 600, SH = 1800, PAD = 32, GAP = 18;
-  const PW = SW - PAD * 2, PH = Math.round(PW * 3 / 4);
+  const SW = 600, SH = 1800, PAD = 28, GAP = 14, FOOT = 288;
+  const PW = SW - PAD * 2, PH = Math.floor((SH - PAD * 2 - GAP * 2 - FOOT) / 3);
   const FOOT_TOP = PAD + 3 * PH + 2 * GAP, FOOT_H = SH - FOOT_TOP - PAD;
 
   function fitFont(ctx, text, fontFn, size, maxW){
@@ -590,8 +590,8 @@ button:disabled{opacity:.45;cursor:default}
 
     if (theme === "confetti") {
       let placed = 0, tries = 0;
-      while (placed < 54 && tries++ < 600) {
-        const x = L + 6 + r() * (PW - 12), y = T + 18 + r() * (FOOT_H - 30);
+      while (placed < 40 && tries++ < 600) {
+        const x = L + 6 + r() * (PW - 12), y = T + 16 + r() * (FOOT_H - 26);
         if (clear(x, y)) continue;
         ctx.fillStyle = PASTELS[placed % PASTELS.length];
         ctx.beginPath(); ctx.arc(x, y, 5 + r() * 7, 0, Math.PI * 2); ctx.fill();
@@ -599,16 +599,16 @@ button:disabled{opacity:.45;cursor:default}
       }
     }
     if (theme === "chain") {
-      drawChain(ctx, L - 14, T + 14, ox + SW / 2, T + 14, 30, 24, 14, 0);
-      drawChain(ctx, ox + SW / 2, T + 14, R + 14, T + 14, 30, 24, 14, 3);
+      drawChain(ctx, L - 14, T + 10, ox + SW / 2, T + 10, 16, 20, 12, 0);
+      drawChain(ctx, ox + SW / 2, T + 10, R + 14, T + 10, 16, 20, 12, 3);
       // tassels where the swags meet
       for (const [x, c] of [[ox + SW / 2, "#c9b6e4"], [L + 2, "#f4c6d3"], [R - 2, "#bfe0cf"]]) {
         ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.lineCap = "round";
-        for (let k = -3; k <= 3; k++) { ctx.beginPath(); ctx.moveTo(x, T + 18); ctx.lineTo(x + k * 2.2, T + 52 + Math.abs(k) * -2); ctx.stroke(); }
+        for (let k = -3; k <= 3; k++) { ctx.beginPath(); ctx.moveTo(x, T + 14); ctx.lineTo(x + k * 2, T + 36 + Math.abs(k) * -2); ctx.stroke(); }
       }
       let placed = 0, tries = 0;
-      while (placed < 16 && tries++ < 300) {
-        const x = L + 10 + r() * (PW - 20), y = T + 110 + r() * (FOOT_H - 130);
+      while (placed < 14 && tries++ < 300) {
+        const x = L + 10 + r() * (PW - 20), y = T + 60 + r() * (FOOT_H - 74);
         if (clear(x, y)) continue;
         ctx.fillStyle = PASTELS[placed % PASTELS.length]; ctx.beginPath(); ctx.arc(x, y, 4 + r() * 4, 0, Math.PI * 2); ctx.fill(); placed++;
       }
@@ -616,7 +616,7 @@ button:disabled{opacity:.45;cursor:default}
     if (theme === "starry") {
       const gold = "#d9b45a";
       // hanging stars on threads
-      [[.12, 70], [.3, 120], [.72, 95], [.9, 60]].forEach(([fx, len], i) => {
+      [[.08, 34], [.25, 56], [.75, 46], [.92, 28]].forEach(([fx, len], i) => {
         const x = L + fx * PW;
         ctx.strokeStyle = "rgba(170,140,90,.55)"; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + len); ctx.stroke();
@@ -624,7 +624,7 @@ button:disabled{opacity:.45;cursor:default}
       });
       let placed = 0, tries = 0;
       while (placed < 22 && tries++ < 400) {
-        const x = L + 8 + r() * (PW - 16), y = T + 40 + r() * (FOOT_H - 50);
+        const x = L + 8 + r() * (PW - 16), y = T + 24 + r() * (FOOT_H - 34);
         if (clear(x, y, 20)) continue;
         if (placed % 3 === 0) drawStar(ctx, x, y, 5 + r() * 4, gold, r() * Math.PI);
         else drawSparkle(ctx, x, y, 5 + r() * 7, placed % 2 ? "#ffffff" : gold);
@@ -632,19 +632,19 @@ button:disabled{opacity:.45;cursor:default}
       }
     }
     if (theme === "bows") {
-      drawBow(ctx, ox + SW / 2, T + 62, 40, "#f6c6d4", "#d98aa3");
-      for (const [x, y, s] of [[L + 30, T + 60, 18], [R - 30, T + 60, 18], [L + 34, B - 52, 15], [R - 34, B - 52, 15]]) drawBow(ctx, x, y, s, "#ffffff", "#e3a5b8");
+      drawBow(ctx, ox + SW / 2, T + 30, 24, "#f6c6d4", "#d98aa3");
+      for (const [x, y, s] of [[L + 26, T + 36, 14], [R - 26, T + 36, 14], [L + 26, B - 42, 12], [R - 26, B - 42, 12]]) drawBow(ctx, x, y, s, "#ffffff", "#e3a5b8");
       ctx.fillStyle = "rgba(255,255,255,.8)";
       for (let k = 0; k < 18; k++) {
-        const x = L + 10 + r() * (PW - 20), y = T + 100 + r() * (FOOT_H - 140);
+        const x = L + 10 + r() * (PW - 20), y = T + 60 + r() * (FOOT_H - 80);
         if (clear(x, y, 18)) continue;
         ctx.beginPath(); ctx.arc(x, y, 2.5 + r() * 2, 0, Math.PI * 2); ctx.fill();
       }
     }
     if (theme === "candle") {
-      const base = B - 26, cols = ["#f4c6d3", "#f7e3a1", "#bfe0cf", "#c9b6e4", "#f6c9a8", "#bcd6ee"];
-      [[L + 18, 250], [L + 46, 320], [L + 74, 210]].forEach(([x, h], i) => drawCandle(ctx, x, base, h, cols[i]));
-      [[R - 74, 230], [R - 46, 310], [R - 18, 260]].forEach(([x, h], i) => drawCandle(ctx, x, base, h, cols[i + 3]));
+      const base = B - 14, cols = ["#f4c6d3", "#f7e3a1", "#bfe0cf", "#c9b6e4", "#f6c9a8", "#bcd6ee"];
+      [[L + 16, 150], [L + 42, 200], [L + 68, 130]].forEach(([x, h], i) => drawCandle(ctx, x, base, h, cols[i]));
+      [[R - 68, 140], [R - 42, 195], [R - 16, 160]].forEach(([x, h], i) => drawCandle(ctx, x, base, h, cols[i + 3]));
     }
   }
 
@@ -659,31 +659,31 @@ button:disabled{opacity:.45;cursor:default}
 
     const cx = ox + SW / 2;
     const narrow = state.theme === "candle";
-    const maxW = narrow ? PW - 190 : PW - 40;
+    const maxW = narrow ? PW - 176 : PW - 40;
     const hasExtra = !!state.extra;
-    const shift = { confetti: 0, chain: 34, starry: 40, bows: 50, candle: -10 }[state.theme];
-    const block = hasExtra ? 170 : 120;
+    const shift = { confetti: 0, chain: 18, starry: 16, bows: 22, candle: 0 }[state.theme];
+    const block = hasExtra ? 150 : 106;
     const top = FOOT_TOP + (FOOT_H - block) / 2 + shift;
 
     ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
     const hand = s => `${s}px "Nanum Pen Script", "Bradley Hand", cursive`;
-    const s1 = fitFont(ctx, TITLE, hand, 92, maxW);
+    const s1 = fitFont(ctx, TITLE, hand, 80, maxW);
     const titleY = top + Math.round(s1 * .72);
     ctx.font = hand(s1);
     const titleW = ctx.measureText(TITLE).width;
 
-    ctx.font = '500 34px "Cormorant Garamond", Georgia, serif';
-    const dateY = titleY + 54;
+    ctx.font = '500 30px "Cormorant Garamond", Georgia, serif';
+    const dateY = titleY + 44;
     let extraY = dateY, s3 = 0;
     if (hasExtra) {
-      s3 = fitFont(ctx, state.extra, s => `italic 400 ${s}px "Cormorant Garamond", Georgia, serif`, 32, maxW);
-      extraY = dateY + 50;
+      s3 = fitFont(ctx, state.extra, s => `italic 400 ${s}px "Cormorant Garamond", Georgia, serif`, 28, maxW);
+      extraY = dateY + 40;
     }
     const box = { x0: cx - titleW / 2, x1: cx + titleW / 2, y0: titleY - s1 * .7, y1: (hasExtra ? extraY : dateY) + 10 };
     decorate(ctx, ox, state.theme, box);
 
     ctx.fillStyle = t.ink; ctx.font = hand(s1); ctx.fillText(TITLE, cx, titleY);
-    ctx.fillStyle = t.sub; ctx.font = '500 34px "Cormorant Garamond", Georgia, serif';
+    ctx.fillStyle = t.sub; ctx.font = '500 30px "Cormorant Garamond", Georgia, serif';
     spaced(ctx, DATE, cx, dateY, 6);
     if (hasExtra) {
       ctx.font = `italic 400 ${s3}px "Cormorant Garamond", Georgia, serif`;
